@@ -1,7 +1,7 @@
 import { RefreshToken } from '@devcollab/common/interfaces/refreshToken.interface';
 import { User } from '@devcollab/common/interfaces/user.interface';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../../infrastructure/database/database.service';
 
 @Injectable()
 export class UsersRepository {

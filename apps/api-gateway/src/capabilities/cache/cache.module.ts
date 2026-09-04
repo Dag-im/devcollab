@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { CacheService } from './cache.service';
+import { RedisService } from '../../infrastructure/redis/redis.service';
 import { CacheController } from './cache.controller';
+import { CacheService } from './cache.service';
 
 @Module({
   controllers: [CacheController],
-  providers: [CacheService],
+  providers: [CacheService, RedisService],
 })
 export class CacheModule {}

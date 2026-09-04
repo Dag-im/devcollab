@@ -22,9 +22,14 @@ export const jwtConfig = registerAs('jwt', () => ({
   refreshExpiry: process.env.JWT_REFRESH_EXPIRY,
 }));
 
-export const redisConfig = registerAs('redis', () => ({
-  url: process.env.REDIS_URL,
-}));
+export const redisConfig = registerAs('redis', () => {
+  const url = process.env.REDIS_URL;
+  if (!url) {
+    throw new Error('REDIS_URL is required');
+  }
+
+  return { url };
+});
 
 export const kafkaConfig = registerAs('kafka', () => ({
   brokers: process.env.KAFKA_BROKERS?.split(','),

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { StringValue } from 'ms';
-import { jwtConfig } from '../config/configuration';
+import { jwtConfig } from '../../config/configuration';
 import { UsersRepository } from '../users/users.repository';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';

@@ -1,6 +1,6 @@
 import { ConfigType } from '@nestjs/config';
 import { Pool } from 'pg';
-import { databaseConfig } from '../config/configuration';
+import { databaseConfig } from '../../config/configuration';
 
 export const DATABASE_POOL = 'DATABASE_POOL';
 
