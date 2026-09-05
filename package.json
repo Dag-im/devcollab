@@ -21,7 +21,7 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "db:migrate": "psql -U postgres -h localhost -d devcollab -f databases/migrations/001_initial_schema.sql",
+    "db:migrate": "psql -U postgres -h localhost -d devcollab -f databases/migrations/003_partial_unique_member_index.sql",
     "db:reset": "docker compose down -v && docker compose up -d"
   },
   "dependencies": {

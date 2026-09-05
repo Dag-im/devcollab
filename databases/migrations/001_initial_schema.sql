@@ -164,3 +164,5 @@ CREATE TABLE refresh_tokens (
 
   CONSTRAINT uq_refresh_tokens_token_hash UNIQUE (token_hash)
 );
+
+

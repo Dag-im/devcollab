@@ -54,7 +54,7 @@ export class MemberRepository {
   }
   async create(data: CreateMemberData, client?: PoolClient): Promise<Member> {
     const runner = client ?? this.db['pool'];
-    const result = await this.db.query<Member>(
+    const result = await runner.query<Member>(
       `INSERT INTO members (user_id, workspace_id, role)
          VALUES ($1, $2, $3)
          RETURNING *;`,

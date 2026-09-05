@@ -7,9 +7,9 @@ export interface Member {
 }
 
 export enum MemberRole {
-  OWNER = 'owner',
-  ADMIN = 'admin',
-  MEMBER = 'member',
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER',
 }
 
 export interface MemberWithUser extends Member {
