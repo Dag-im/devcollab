@@ -9,12 +9,14 @@ import * as bcrypt from 'bcrypt';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { CacheService } from '../../capabilities/cache/cache.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
+    private cacheService: CacheService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -110,9 +112,10 @@ export class AuthService {
       expiresIn: 900,
     };
   }
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string, userId: string) {
     const refreshTokenHash = hash(refreshToken);
     await this.usersRepository.revokeRefreshToken(refreshTokenHash);
+    await this.cacheService.del(`user:${userId}`);
     return { message: 'Logged out successfully' };
   }
 }

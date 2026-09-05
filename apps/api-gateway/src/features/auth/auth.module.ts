@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigType } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { StringValue } from 'ms';
+import { CacheService } from '../../capabilities/cache/cache.service';
 import { jwtConfig } from '../../config/configuration';
 import { UsersRepository } from '../users/users.repository';
 import { AuthController } from './auth.controller';
@@ -21,6 +22,7 @@ import { AuthService } from './auth.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, UsersRepository],
+  providers: [AuthService, UsersRepository, CacheService],
+  exports: [JwtModule],
 })
 export class AuthModule {}

@@ -5,7 +5,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersRepository } from '../../users/users.repository';
+import { CacheService } from 'apps/api-gateway/src/capabilities/cache/cache.service';
+import { UsersRepository } from '../../features/users/users.repository';
 
 export interface JwtPayload {
   sub: string;
@@ -19,6 +20,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private usersRepository: UsersRepository,
+    private cacheService: CacheService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,10 +31,18 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+      const cacheKey = `user:${payload.sub}`;
+
+      let user = await this.cacheService.get(cacheKey);
 
       // check user still exists and isn't deleted
-      const user = await this.usersRepository.findById(payload.sub);
-      if (!user) throw new UnauthorizedException();
+      if (!user) {
+        user = await this.usersRepository.findById(payload.sub);
+        if (!user) throw new UnauthorizedException();
+
+        // cache the user for future requests
+        await this.cacheService.set(cacheKey, user, 60 * 15); // cache for 15 minutes
+      }
 
       // attach to request so handlers can access it
       request.user = user;

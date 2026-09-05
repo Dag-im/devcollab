@@ -10,12 +10,12 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { User } from 'libs/common/interfaces/user.interface';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { Cookie } from './decorators/cookie.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -65,10 +65,11 @@ export class AuthController {
   @Post('logout')
   @HttpCode(204)
   async logout(
+    @CurrentUser() user: User,
     @Cookie('refresh_token') token: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (token) await this.authService.logout(token);
+    if (token) await this.authService.logout(token, user.id);
     res.clearCookie('refresh_token');
   }
   @Get('me')

@@ -15,6 +15,7 @@ import {
 } from './config/configuration';
 import { AuthModule } from './features/auth/auth.module';
 import { UsersModule } from './features/users/users.module';
+import { WorkspacesModule } from './features/workspace/workspace.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 
@@ -39,6 +40,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     UsersModule,
     AuthModule,
     CacheModule,
+    WorkspacesModule,
   ],
   controllers: [ApiGatewayController],
   providers: [
