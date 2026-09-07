@@ -1,0 +1,98 @@
+import { Member } from '@devcollab/common/interfaces/member.interface';
+import { CursorPaginatedResponse } from '@devcollab/common/interfaces/pagination.interface';
+import {
+  Task,
+  TaskPriority,
+  TaskStatus,
+  TaskWithAssignee,
+} from '@devcollab/common/interfaces/task.interface';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { TaskQueryDto } from './dto/task-query.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
+import { TasksRepository } from './tasks.repository';
+
+@Injectable()
+export class TasksService {
+  constructor(private readonly tasksRepository: TasksRepository) {}
+  async create(
+    dto: CreateTaskDto,
+    projectId: string,
+    member: Member,
+  ): Promise<Task> {
+    return this.tasksRepository.create({
+      title: dto.title,
+      description: dto.description ?? null,
+      priority: dto.priority || TaskPriority.LOW,
+      status: TaskStatus.TODO,
+      project_id: projectId,
+      created_by: member.id,
+      assignee_id: dto.assigneeId ?? null,
+      due_date: dto.dueDate ? new Date(dto.dueDate) : null,
+    });
+  }
+  async findAll(
+    projectId: string,
+    query: TaskQueryDto,
+  ): Promise<CursorPaginatedResponse<TaskWithAssignee>> {
+    const tasks = await this.tasksRepository.findByProjectId(projectId, query);
+    const hasNextPage = tasks.length > (query.limit ?? 20);
+    const limitedTasks = hasNextPage ? tasks.slice(0, query.limit) : tasks;
+    return {
+      data: limitedTasks,
+      pagination: {
+        limit: query.limit ?? 20,
+        nextCursor: hasNextPage
+          ? limitedTasks[limitedTasks.length - 1].created_at.toISOString()
+          : null,
+        hasNextPage,
+      },
+    };
+  }
+  async findOne(taskId: string): Promise<TaskWithAssignee> {
+    const task = await this.tasksRepository.findById(taskId);
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    return task;
+  }
+  async update(taskId: string, dto: UpdateTaskDto): Promise<Task> {
+    const task = await this.tasksRepository.update(taskId, dto);
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    return task;
+  }
+  async updateStatus(
+    taskId: string,
+    status: TaskStatus,
+    member: Member,
+  ): Promise<Task> {
+    const task = await this.tasksRepository.findById(taskId);
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    const isAssignee = task.assignee_id === member.id;
+    const isPrivileged = member.role === 'OWNER' || member.role === 'ADMIN';
+    if (!isAssignee && !isPrivileged) {
+      throw new ForbiddenException(
+        'Only the assignee or a privileged member can update the task status',
+      );
+    }
+    const updatedTask = await this.tasksRepository.update(taskId, {
+      status,
+    });
+    return updatedTask;
+  }
+  async delete(taskId: string): Promise<void> {
+    const task = await this.tasksRepository.findById(taskId);
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    await this.tasksRepository.softDelete(taskId);
+  }
+}

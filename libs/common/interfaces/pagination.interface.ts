@@ -6,3 +6,15 @@ export interface CursorPaginatedResponse<T> {
     hasNextPage: boolean;
   };
 }
+
+export interface OffsetPaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    currentPage: number;
+    perPage: number;
+    totalPages: number;
+    totalItems: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
