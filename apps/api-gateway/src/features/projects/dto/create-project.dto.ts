@@ -11,7 +11,7 @@ export class CreateProjectDto {
   @MaxLength(255, {
     message: 'name must be shorter than or equal to 255 characters',
   })
-  title!: string;
+  name!: string;
   @IsString()
   @IsOptional()
   @MaxLength(500, {

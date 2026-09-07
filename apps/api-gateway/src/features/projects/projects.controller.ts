@@ -47,13 +47,13 @@ export class ProjectsController {
   }
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'ADMIN')
-  @Patch('projectId')
-  update(@Param('projectId') id: string, dto: UpdateProjectDto) {
+  @Patch(':projectId')
+  update(@Param('projectId') id: string, @Body() dto: UpdateProjectDto) {
     return this.projectsService.update(id, dto);
   }
   @Roles('OWNER', 'ADMIN')
   @UseGuards(RolesGuard)
-  @Delete('projectId')
+  @Delete(':projectId')
   delete(@Param('projectId') id: string) {
     return this.projectsService.delete(id);
   }

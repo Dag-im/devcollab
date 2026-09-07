@@ -2,7 +2,10 @@ export interface CursorPaginatedResponse<T> {
   data: T[];
   pagination: {
     limit: number;
-    nextCursor: string | null;
+    nextCursor: {
+      date: string;
+      id: string;
+    } | null;
     hasNextPage: boolean;
   };
 }

@@ -4,6 +4,7 @@ import {
   Project,
   ProjectStatus,
 } from '@devcollab/common/interfaces/project.interface';
+import { generateSlug } from '@devcollab/common/utils/slug';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ProjectQueryDto } from './dto/project-query.dto';
@@ -19,8 +20,8 @@ export class ProjectsService {
     member: Member,
   ): Promise<Project> {
     return this.projectsRepository.create({
-      name: dto.title,
-      slug: dto.title.toLowerCase().replace(/\s+/g, '-'),
+      name: dto.name,
+      slug: generateSlug(dto.name),
       description: dto.description ?? null,
       status: ProjectStatus.ACTIVE,
       workspace_id: workspaceId,

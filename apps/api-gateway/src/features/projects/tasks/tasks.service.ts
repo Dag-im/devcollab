@@ -47,7 +47,12 @@ export class TasksService {
       pagination: {
         limit: query.limit ?? 20,
         nextCursor: hasNextPage
-          ? limitedTasks[limitedTasks.length - 1].created_at.toISOString()
+          ? {
+              date: limitedTasks[
+                limitedTasks.length - 1
+              ].created_at.toISOString(),
+              id: limitedTasks[limitedTasks.length - 1].id,
+            }
           : null,
         hasNextPage,
       },
@@ -60,33 +65,25 @@ export class TasksService {
     }
     return task;
   }
-  async update(taskId: string, dto: UpdateTaskDto): Promise<Task> {
+  async update(
+    taskId: string,
+    dto: UpdateTaskDto,
+    member: Member,
+  ): Promise<Task> {
     const task = await this.tasksRepository.update(taskId, dto);
     if (!task) {
       throw new NotFoundException('Task not found');
     }
+    if (dto.status && dto.status !== task.status) {
+      const isAssignee = task.assignee_id === member.id;
+      const isPrivileged = member.role === 'OWNER' || member.role === 'ADMIN';
+      if (!isAssignee && !isPrivileged) {
+        throw new ForbiddenException(
+          'Only the assignee or a privileged member can update the task status',
+        );
+      }
+    }
     return task;
-  }
-  async updateStatus(
-    taskId: string,
-    status: TaskStatus,
-    member: Member,
-  ): Promise<Task> {
-    const task = await this.tasksRepository.findById(taskId);
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-    const isAssignee = task.assignee_id === member.id;
-    const isPrivileged = member.role === 'OWNER' || member.role === 'ADMIN';
-    if (!isAssignee && !isPrivileged) {
-      throw new ForbiddenException(
-        'Only the assignee or a privileged member can update the task status',
-      );
-    }
-    const updatedTask = await this.tasksRepository.update(taskId, {
-      status,
-    });
-    return updatedTask;
   }
   async delete(taskId: string): Promise<void> {
     const task = await this.tasksRepository.findById(taskId);

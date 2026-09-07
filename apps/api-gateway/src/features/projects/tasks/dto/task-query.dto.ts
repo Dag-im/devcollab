@@ -37,7 +37,11 @@ export class TaskQueryDto {
 
   @IsOptional()
   @IsDateString()
-  cursor?: string;
+  cursorDate?: string;
+
+  @IsOptional()
+  @IsUUID()
+  cursorId?: string;
 
   @IsOptional()
   @Type(() => Number)

@@ -23,11 +23,14 @@ export class TasksRepository {
     const values: any[] = [projectId];
     let idx = 2;
 
-    if (query.cursor) {
+    if (query.cursorDate && query.cursorId) {
       conditions.push(
-        `t.created_at < $${idx++} OR (t.created_at = $${idx - 1} AND t.id < $${idx++})`,
+        `(t.created_at < $${idx} OR (t.created_at = $${idx} AND t.id < $${idx + 1}))`,
       );
-      values.push(new Date(query.cursor));
+      values.push(new Date(query.cursorDate));
+      idx++;
+      values.push(query.cursorId);
+      idx++;
     }
     if (query.status) {
       conditions.push(`t.status = $${idx++}`);
@@ -87,7 +90,7 @@ export class TasksRepository {
     const sql = `
     INSERT INTO tasks (title, description, priority, status, project_id, assignee_id, created_by, due_date)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING id, title, description, status, priority, project_id, assignee_id, created_by, due_date, created_at, updated_at
+    RETURNING *
   `;
 
     const values = [
@@ -106,11 +109,18 @@ export class TasksRepository {
   }
   async update(taskId: string, data: UpdateTaskData): Promise<Task> {
     const sql = `
-    UPDATE tasks
-    SET title = $1, description = $2, priority = $3, status = $4, assignee_id = $5, updated_at = NOW()
-    WHERE id = $6 AND deleted_at IS NULL
-    RETURNING id, title, description, status, priority, project_id, assignee_id, created_by, due_date, created_at, updated_at
-  `;
+  UPDATE tasks
+  SET
+    title = COALESCE($1, title),
+    description = COALESCE($2, description),
+    priority = COALESCE($3, priority),
+    status = COALESCE($4, status),
+    assignee_id = COALESCE($5, assignee_id),
+    due_date = COALESCE($6, due_date)
+  WHERE id = $7 AND deleted_at IS NULL
+  RETURNING id, title, description, status, priority, project_id,
+            assignee_id, created_by, due_date, created_at, updated_at
+`;
 
     const values = [
       data.title,
@@ -118,6 +128,7 @@ export class TasksRepository {
       data.priority,
       data.status,
       data.assignee_id,
+      data.due_date,
       taskId,
     ];
 

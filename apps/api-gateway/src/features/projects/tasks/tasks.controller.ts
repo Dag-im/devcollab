@@ -1,5 +1,4 @@
 import { Member } from '@devcollab/common/interfaces/member.interface';
-import { TaskStatus } from '@devcollab/common/interfaces/task.interface';
 import {
   Body,
   Controller,
@@ -40,16 +39,12 @@ export class TasksController {
     return this.tasksService.create(dto, id, member);
   }
   @Patch(':taskId')
-  update(@Param('taskId') id: string, dto: UpdateTaskDto) {
-    return this.tasksService.update(id, dto);
-  }
-  @Patch(':taskId')
-  updateStatus(
+  update(
     @Param('taskId') id: string,
-    status: TaskStatus,
-    member: Member,
+    @Body() dto: UpdateTaskDto,
+    @CurrentMember() member: Member,
   ) {
-    return this.tasksService.updateStatus(id, status, member);
+    return this.tasksService.update(id, dto, member);
   }
   @Delete(':taskId')
   delete(@Param('taskId') id: string) {
