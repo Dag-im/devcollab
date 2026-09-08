@@ -23,12 +23,12 @@ export class TasksRepository {
     const values: any[] = [projectId];
     let idx = 2;
 
-    if (query.cursorDate && query.cursorId) {
-      conditions.push(
-        `(t.created_at < $${idx} OR (t.created_at = $${idx} AND t.id < $${idx + 1}))`,
-      );
-      values.push(new Date(query.cursorDate));
-      idx++;
+    if (query.cursorId) {
+      conditions.push(`
+    (t.created_at, t.id) < (
+      SELECT created_at, id FROM tasks WHERE id = $${idx}
+    )
+  `);
       values.push(query.cursorId);
       idx++;
     }

@@ -2,15 +2,7 @@ import {
   TaskPriority,
   TaskStatus,
 } from '@devcollab/common/interfaces/task.interface';
-import {
-  IsDateString,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsUUID,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 import { Type } from 'class-transformer';
 
@@ -34,10 +26,6 @@ export class TaskQueryDto {
   @IsOptional()
   @IsUUID()
   assigneeId?: string;
-
-  @IsOptional()
-  @IsDateString()
-  cursorDate?: string;
 
   @IsOptional()
   @IsUUID()

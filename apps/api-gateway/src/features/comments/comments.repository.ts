@@ -14,15 +14,16 @@ export class CommentsRepository {
     const values: any[] = [taskId];
     let idx = 2;
 
-    if (query.cursorDate && query.cursorId) {
-      conditions.push(
-        `(c.created_at < $${idx} OR (c.created_at = $${idx} AND c.id < $${idx + 1}))`,
-      );
-      values.push(new Date(query.cursorDate));
-      idx++;
+    if (query.cursorId) {
+      conditions.push(`
+    (c.created_at, c.id) > (
+      SELECT created_at, id FROM comments WHERE id = $${idx}
+    )
+  `);
       values.push(query.cursorId);
       idx++;
     }
+    values.push((query.limit ?? 50) + 1);
 
     const sql = `
   SELECT
@@ -34,7 +35,7 @@ FROM comments c
 INNER JOIN members m ON m.id = c.author_id
 LEFT JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
 WHERE ${conditions.join(' AND ')}
-  ORDER BY t.created_at ASC, t.id ASC
+  ORDER BY c.created_at ASC, c.id ASC
   LIMIT $${idx}
 `;
     const result = await this.db.query<CommentWithAuthor>(sql, values);
@@ -50,7 +51,7 @@ WHERE ${conditions.join(' AND ')}
 FROM comments c
 INNER JOIN members m ON m.id = c.author_id
 LEFT JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
-WHERE c.id = $1 AND c.deletedAt IS NULL`;
+WHERE c.id = $1 AND c.deleted_at IS NULL`;
 
     const result = await this.db.query<CommentWithAuthor>(sql, [commentId]);
     return result.rows[0] ?? null;
@@ -60,7 +61,9 @@ WHERE c.id = $1 AND c.deletedAt IS NULL`;
     taskId: string;
     authorId: string;
   }): Promise<Comment> {
-    const sql = `INSERT INTO comments(body, task_id ,author_id) VALUES ($1, $2, $3)`;
+    const sql = `INSERT INTO comments(body, task_id ,author_id) VALUES ($1, $2, $3)
+     RETURNING *
+    `;
     const values = [data.body, data.taskId, data.authorId];
     const result = await this.db.query(sql, values);
     return result.rows[0];
