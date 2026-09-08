@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -47,6 +48,7 @@ export class TasksController {
     return this.tasksService.update(id, dto, member);
   }
   @Delete(':taskId')
+  @HttpCode(204)
   delete(@Param('taskId') id: string) {
     return this.tasksService.delete(id);
   }

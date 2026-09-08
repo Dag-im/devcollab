@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
-import { WorkspacesModule } from '../workspace/workspace.module';
+import { AuthModule } from '../auth/auth.module';
+import { UsersRepository } from '../users/users.repository';
+import { MemberRepository } from '../workspace/member.repository';
 import { ProjectsController } from './projects.controller';
 import { ProjectsRepository } from './projects.repository';
 import { ProjectsService } from './projects.service';
@@ -9,12 +11,14 @@ import { TasksService } from './tasks/tasks.service';
 
 // ProjectsModule
 @Module({
-  imports: [WorkspacesModule], // needs MemberRepository for assignee validation
+  imports: [AuthModule],
   providers: [
     ProjectsService,
     ProjectsRepository,
     TasksService,
     TasksRepository,
+    UsersRepository,
+    MemberRepository,
   ],
   controllers: [ProjectsController, TasksController],
 })

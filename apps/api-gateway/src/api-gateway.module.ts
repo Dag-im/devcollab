@@ -14,6 +14,7 @@ import {
   validationSchema,
 } from './config/configuration';
 import { AuthModule } from './features/auth/auth.module';
+import { ProjectsModule } from './features/projects/projects.module';
 import { UsersModule } from './features/users/users.module';
 import { WorkspacesModule } from './features/workspace/workspace.module';
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -41,6 +42,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     AuthModule,
     CacheModule,
     WorkspacesModule,
+    ProjectsModule,
   ],
   controllers: [ApiGatewayController],
   providers: [

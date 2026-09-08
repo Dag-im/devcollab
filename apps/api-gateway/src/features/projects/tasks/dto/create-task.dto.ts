@@ -31,7 +31,7 @@ export class CreateTaskDto {
     ).join(', ')}`,
   })
   @IsOptional()
-  priority?: TaskPriority = TaskPriority.LOW;
+  priority?: TaskPriority;
 
   @IsUUID()
   @IsOptional()

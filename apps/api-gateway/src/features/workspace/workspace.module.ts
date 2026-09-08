@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { CacheService } from '../../capabilities/cache/cache.service';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import { AuthModule } from '../auth/auth.module';
 import { UsersRepository } from '../users/users.repository';
@@ -17,7 +16,6 @@ import { WorkspaceService } from './workspace.service';
     MemberRepository,
     WorkspaceRepository,
     UsersRepository,
-    CacheService,
   ],
 })
 export class WorkspacesModule {}

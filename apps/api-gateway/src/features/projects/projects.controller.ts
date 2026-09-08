@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -54,6 +55,7 @@ export class ProjectsController {
   @Roles('OWNER', 'ADMIN')
   @UseGuards(RolesGuard)
   @Delete(':projectId')
+  @HttpCode(204)
   delete(@Param('projectId') id: string) {
     return this.projectsService.delete(id);
   }
