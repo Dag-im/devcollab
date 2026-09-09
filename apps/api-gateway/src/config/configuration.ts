@@ -31,6 +31,16 @@ export const redisConfig = registerAs('redis', () => {
   return { url };
 });
 
+export const storageConfig = registerAs('storage', () => ({
+  endpoint: process.env.STORAGE_ENDPOINT,
+  port: Number(process.env.STORAGE_PORT),
+  accessKey: process.env.STORAGE_ACCESS_KEY,
+  secretKey: process.env.STORAGE_SECRET_KEY,
+  bucket: process.env.STORAGE_BUCKET,
+  useSSL: process.env.STORAGE_USE_SSL === 'true',
+  region: process.env.STORAGE_REGION,
+}));
+
 export const kafkaConfig = registerAs('kafka', () => ({
   brokers: process.env.KAFKA_BROKERS?.split(','),
   clientId: process.env.KAFKA_CLIENT_ID,
@@ -60,4 +70,12 @@ export const validationSchema = Joi.object({
   KAFKA_CLIENT_ID: Joi.string().required(),
   KAFKA_CONSUMER_GROUP_ID: Joi.string().required(),
   KAFKA_SSL_ENABLED: Joi.boolean().default(false),
+
+  STORAGE_ENDPOINT: Joi.string().required(),
+  STORAGE_PORT: Joi.number().required(),
+  STORAGE_ACCESS_KEY: Joi.string().required(),
+  STORAGE_SECRET_KEY: Joi.string().required(),
+  STORAGE_BUCKET: Joi.string().required(),
+  STORAGE_USE_SSL: Joi.boolean().default(false),
+  STORAGE_REGION: Joi.string().default('us-east-1'),
 });

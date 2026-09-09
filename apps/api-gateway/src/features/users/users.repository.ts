@@ -9,7 +9,7 @@ export class UsersRepository {
   async findByEmail(email: string): Promise<User | null> {
     try {
       const user = await this.db.query(
-        `SELECT id, email, username, avatar_url, is_verified, created_at
+        `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
    FROM users WHERE email = $1 AND deleted_at IS NULL`,
         [email],
       );
@@ -23,7 +23,7 @@ export class UsersRepository {
     email: string,
   ): Promise<(User & { password_hash: string }) | null> {
     const result = await this.db.query<User & { password_hash: string }>(
-      `SELECT id, email, username, avatar_url, is_verified, created_at, password_hash
+      `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at, password_hash
      FROM users WHERE email = $1 AND deleted_at IS NULL`,
       [email],
     );
@@ -33,7 +33,7 @@ export class UsersRepository {
   async findById(id: string): Promise<User | null> {
     try {
       const user = await this.db.query(
-        `SELECT id, email, username, avatar_url, is_verified, created_at
+        `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
    FROM users WHERE id = $1 AND deleted_at IS NULL`,
         [id],
       );
@@ -42,6 +42,28 @@ export class UsersRepository {
       console.error('Error finding user by id:', error);
       throw new Error('Database query failed');
     }
+  }
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<{ users: User[]; total: number }> {
+    const offset = (page - 1) * limit;
+    const [usersResult, countResult] = await Promise.all([
+      this.db.query<User>(
+        `SELECT id, email, username, avatar_url, is_verified, is_platform_admin, created_at
+       FROM users WHERE deleted_at IS NULL
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      ),
+      this.db.query<{ count: string }>(
+        `SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL`,
+      ),
+    ]);
+    return {
+      users: usersResult.rows,
+      total: parseInt(countResult.rows[0].count, 10),
+    };
   }
 
   async createUser(data: {

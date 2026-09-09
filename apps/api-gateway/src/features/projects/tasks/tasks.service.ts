@@ -11,6 +11,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AttachmentService } from '../../attachments/attachment.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { TaskQueryDto } from './dto/task-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -18,7 +19,10 @@ import { TasksRepository } from './tasks.repository';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly tasksRepository: TasksRepository) {}
+  constructor(
+    private readonly tasksRepository: TasksRepository,
+    private attachmentsService: AttachmentService,
+  ) {}
   async create(
     dto: CreateTaskDto,
     projectId: string,
@@ -70,12 +74,11 @@ export class TasksService {
     dto: UpdateTaskDto,
     member: Member,
   ): Promise<Task> {
-    const task = await this.tasksRepository.update(taskId, dto);
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-    if (dto.status && dto.status !== task.status) {
-      const isAssignee = task.assignee_id === member.id;
+    const existing = await this.tasksRepository.findById(taskId);
+    if (!existing) throw new NotFoundException('Task not found');
+
+    if (dto.status && dto.status !== existing.status) {
+      const isAssignee = existing.assignee_id === member.id;
       const isPrivileged = member.role === 'OWNER' || member.role === 'ADMIN';
       if (!isAssignee && !isPrivileged) {
         throw new ForbiddenException(
@@ -83,13 +86,15 @@ export class TasksService {
         );
       }
     }
-    return task;
+
+    return this.tasksRepository.update(taskId, dto);
   }
   async delete(taskId: string): Promise<void> {
     const task = await this.tasksRepository.findById(taskId);
     if (!task) {
       throw new NotFoundException('Task not found');
     }
+    await this.attachmentsService.deleteByTaskId(taskId);
     await this.tasksRepository.softDelete(taskId);
   }
 }

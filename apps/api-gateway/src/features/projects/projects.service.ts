@@ -32,20 +32,18 @@ export class ProjectsService {
     workspaceId: string,
     query: ProjectQueryDto,
   ): Promise<OffsetPaginatedResponse<Project>> {
-    const projects = await this.projectsRepository.findByWorkspaceId(
+    const { projects, total } = await this.projectsRepository.findByWorkspaceId(
       workspaceId,
       query,
     );
-    const totalItems =
-      await this.projectsRepository.countByWorkspaceId(workspaceId);
-    const totalPages = Math.ceil(totalItems / query.limit);
+    const totalPages = Math.ceil(total / query.limit);
     return {
       data: projects,
       pagination: {
         currentPage: query.page,
         perPage: query.limit,
         totalPages,
-        totalItems,
+        totalItems: total,
         hasNextPage: query.page < totalPages,
         hasPreviousPage: query.page > 1,
       },

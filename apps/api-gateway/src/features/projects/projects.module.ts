@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AttachmentsModule } from '../attachments/attachments.module';
 import { AuthModule } from '../auth/auth.module';
 import { UsersRepository } from '../users/users.repository';
 import { MemberRepository } from '../workspace/member.repository';
@@ -11,7 +12,7 @@ import { TasksService } from './tasks/tasks.service';
 
 // ProjectsModule
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, AttachmentsModule],
   providers: [
     ProjectsService,
     ProjectsRepository,

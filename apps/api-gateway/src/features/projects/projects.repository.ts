@@ -19,7 +19,7 @@ export class ProjectsRepository {
   async findByWorkspaceId(
     workspaceId: string,
     query: ProjectQueryDto,
-  ): Promise<Project[]> {
+  ): Promise<{ projects: Project[]; total: number }> {
     const sql = `
       SELECT id, name, slug, description, status, workspace_id, created_by, created_at, updated_at
       FROM projects
@@ -27,13 +27,20 @@ export class ProjectsRepository {
       ORDER BY created_at DESC
       LIMIT $2 OFFSET $3
     `;
+    const sql_count = `
+      SELECT COUNT(*) AS count
+      FROM projects
+      WHERE workspace_id = $1 AND deleted_at IS NULL
+    `;
     const offset = (query.page - 1) * query.limit;
-    const result = await this.db.query<Project>(sql, [
-      workspaceId,
-      query.limit,
-      offset,
+    const [result, count] = await Promise.all([
+      this.db.query<Project>(sql, [workspaceId, query.limit, offset]),
+      await this.db.query<{ count: string }>(sql_count, [workspaceId]),
     ]);
-    return result.rows;
+    return {
+      projects: result.rows,
+      total: parseInt(count.rows[0].count, 10),
+    };
   }
   async countByWorkspaceId(workspaceId: string): Promise<number> {
     const sql = `
