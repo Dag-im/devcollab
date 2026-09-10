@@ -69,6 +69,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
+        isPlatformAdmin: user.is_platform_admin,
         avatar_url: user.avatar_url,
         is_verified: user.is_verified,
         created_at: user.created_at,

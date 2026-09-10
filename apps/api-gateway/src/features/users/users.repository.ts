@@ -7,17 +7,12 @@ import { DatabaseService } from '../../infrastructure/database/database.service'
 export class UsersRepository {
   constructor(private db: DatabaseService) {}
   async findByEmail(email: string): Promise<User | null> {
-    try {
-      const user = await this.db.query(
-        `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
+    const user = await this.db.query(
+      `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
    FROM users WHERE email = $1 AND deleted_at IS NULL`,
-        [email],
-      );
-      return user.rows[0];
-    } catch (error: any) {
-      console.error('Error finding user by email:', error);
-      throw new Error('Database query failed');
-    }
+      [email],
+    );
+    return user.rows[0];
   }
   async findByEmailWithPassword(
     email: string,
@@ -31,17 +26,12 @@ export class UsersRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    try {
-      const user = await this.db.query(
-        `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
+    const user = await this.db.query(
+      `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
    FROM users WHERE id = $1 AND deleted_at IS NULL`,
-        [id],
-      );
-      return user.rows[0];
-    } catch (error: any) {
-      console.error('Error finding user by id:', error);
-      throw new Error('Database query failed');
-    }
+      [id],
+    );
+    return user.rows[0];
   }
   async findAll(
     page: number,
@@ -66,17 +56,26 @@ export class UsersRepository {
     };
   }
 
-  async createUser(data: {
+  async createUser({
+    email,
+    username,
+    passwordHash,
+    isPlatformAdmin,
+  }: {
     email: string;
     username: string;
     passwordHash: string;
+    isPlatformAdmin?: boolean | null; // Accepts true, false, null, or undefined
   }): Promise<User> {
     try {
-      const result = await this.db.query(
-        `INSERT INTO users (email, username, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, email, username, avatar_url, is_verified, created_at`,
-        [data.email, data.username, data.passwordHash],
+      // Coerces both null and undefined into false, while keeping true as true
+      const isAdmin = isPlatformAdmin ?? false;
+
+      const result = await this.db.query<User>(
+        `INSERT INTO users (email, username, password_hash, is_platform_admin)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, username, avatar_url, is_verified, is_platform_admin, created_at`,
+        [email, username, passwordHash, isAdmin],
       );
       return result.rows[0];
     } catch (error: any) {
@@ -87,6 +86,21 @@ export class UsersRepository {
       throw error;
     }
   }
+
+  async togglePlatformAdmin(
+    userId: string,
+    value: boolean,
+  ): Promise<User | null> {
+    const result = await this.db.query<User>(
+      `UPDATE users
+     SET is_platform_admin = $1
+     WHERE id = $2 AND deleted_at IS NULL
+     RETURNING id, email, username, avatar_url, is_verified, is_platform_admin, created_at`,
+      [value, userId],
+    );
+    return result.rows[0] ?? null;
+  }
+
   // store a new refresh token
   async createRefreshToken(data: {
     userId: string;

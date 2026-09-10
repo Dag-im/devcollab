@@ -4,5 +4,6 @@ export interface User {
   username: string;
   avatar_url: string | null;
   is_verified: boolean;
+  is_platform_admin: boolean; // ← add this
   created_at: Date;
 }
