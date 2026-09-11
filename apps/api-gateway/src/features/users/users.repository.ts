@@ -107,34 +107,20 @@ export class UsersRepository {
     tokenHash: string;
     expiresAt: Date;
   }): Promise<void> {
-    try {
-      const result = await this.db.query(
-        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+    return await this.db.query(
+      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
        VALUES ($1, $2, $3)`,
-        [data.userId, data.tokenHash, data.expiresAt],
-      );
-      return result.rows[0];
-    } catch (error: any) {
-      if (error.code === '23505') {
-        // PostgreSQL unique violation code
-        throw new ConflictException('Refresh token already exists');
-      }
-      throw error;
-    }
+      [data.userId, data.tokenHash, data.expiresAt],
+    );
   }
 
   // find a valid (non-revoked, non-expired) token by hash
   async findRefreshToken(tokenHash: string): Promise<RefreshToken | null> {
-    try {
-      const result = await this.db.query(
-        'SELECT * FROM refresh_tokens WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > NOW()',
-        [tokenHash],
-      );
-      return result.rows[0] || null;
-    } catch (error: any) {
-      console.error('Error finding refresh token:', error);
-      throw new Error('Database query failed');
-    }
+    const result = await this.db.query(
+      'SELECT * FROM refresh_tokens WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > NOW()',
+      [tokenHash],
+    );
+    return result.rows[0] || null;
   }
 
   // revoke a specific token

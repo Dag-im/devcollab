@@ -57,10 +57,10 @@ export class ProjectsService {
     return project;
   }
   async update(projectId: string, dto: UpdateProjectDto): Promise<Project> {
+    const existing = await this.projectsRepository.findById(projectId);
+    if (!existing) throw new NotFoundException('Project not found');
+
     const project = await this.projectsRepository.update(projectId, dto);
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
     return project;
   }
   async delete(projectId: string): Promise<void> {
