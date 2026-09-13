@@ -1,22 +1,22 @@
 import { User } from '@devcollab/common/interfaces/user.interface';
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { UsersRepository } from './users.repository';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { CacheService } from '../../capabilities/cache/cache.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private usersRepository: UsersRepository) {}
-  /**
-   * getProfile(userId) — fetch user by id, throw NotFoundException if not found, return user object.
-
-updateProfile(userId, dto) — dynamic update of username and/or avatar_url, invalidate user:{userId} cache after, return updated user.
-
-changePassword(userId, dto) — fetch user with password hash, bcrypt.compare current password, throw UnauthorizedException if wrong, hash new password, update, revoke all refresh tokens, invalidate cache. Return nothing.
-
-deleteAccount(userId) — soft delete the user row, revoke all refresh tokens, invalidate user:{userId} cache. Return nothing
-   *
-   */
-  async getProfile(userId): Promise<User> {
+  constructor(
+    private usersRepository: UsersRepository,
+    private cacheService: CacheService,
+  ) {}
+  async getProfile(userId: string): Promise<User> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -24,19 +24,32 @@ deleteAccount(userId) — soft delete the user row, revoke all refresh tokens, i
     return user;
   }
 
-  async updateProfile(userId, dto: updateProfileDto) {
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
     const existing = await this.usersRepository.findById(userId);
     if (!existing) throw new NotFoundException('User not found');
-    const isAuthorised = await
-    const user = await this.usersRepository.updateUser(userId, dto);
+    const user = await this.usersRepository.updateProfile(userId, dto);
+    await this.cacheService.del(`user:${userId}`);
     return user;
   }
-  async changePassword(userId, dto: changePasswordDto) {
-    const existing = await this.usersRepository.findById(userId);
-    if (!existing) throw new NotFoundException('User not found');
-    const isAuthorised = bcrypt.compare(dto.existingPassword, existing.password)
-    if(!isAuthorised) throw new UnauthorizedException('Wrong current password')
-    const user = await this.usersRepository.changePassword(userId, dto);
-    return user;
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.usersRepository.findByIdWithPassword(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const isPasswordValid = await bcrypt.compare(
+      dto.currentPassword,
+      user.password_hash,
+    );
+    if (!isPasswordValid)
+      throw new UnauthorizedException('Invalid credentials');
+    const newHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.usersRepository.updatePassword(userId, newHash);
+    await this.usersRepository.revokeAllRefreshToken(userId);
+    await this.cacheService.del(`user:${userId}`);
+  }
+  async deleteAccount(userId: string) {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    await this.usersRepository.softDelete(userId);
+    await this.usersRepository.revokeAllRefreshToken(userId);
+    await this.cacheService.del(`user:${userId}`);
   }
 }

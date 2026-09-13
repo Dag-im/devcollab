@@ -25,6 +25,17 @@ export class UsersRepository {
     return result.rows[0] ?? null;
   }
 
+  async findByIdWithPassword(
+    id: string,
+  ): Promise<(User & { password_hash: string }) | null> {
+    const result = await this.db.query<User & { password_hash: string }>(
+      `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at, password_hash
+     FROM users WHERE id = $1 AND deleted_at IS NULL`,
+      [id],
+    );
+    return result.rows[0] ?? null;
+  }
+
   async findById(id: string): Promise<User | null> {
     const user = await this.db.query(
       `SELECT id, email, username, avatar_url, is_verified,is_platform_admin, created_at
@@ -101,6 +112,43 @@ export class UsersRepository {
     return result.rows[0] ?? null;
   }
 
+  async updateProfile(userId, data) {
+    const sql = `
+        UPDATE users
+        SET username = COALESCE($1, username),
+            email = COALESCE($2, email),
+            avatar_url = COALESCE($3, avatar_url),
+        WHERE id = $4 AND deleted_at IS NULL
+        RETURNING *
+      `;
+    const result = await this.db.query<User>(sql, [
+      data.username,
+      data.email,
+      data.avatar_url,
+      userId,
+    ]);
+    return result.rows[0];
+  }
+  async updatePassword(userId, passwordHash) {
+    const result = await this.db.query<User>(
+      `UPDATE users
+    SET passwordHash = $1
+    WHERE id = $2 AND deleted_at is NULL
+    RETURNING id, email, username, avatar_url, is_verified, is_platform_admin, created_at`,
+      [passwordHash, userId],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  async softDelete(userId: string): Promise<void> {
+    const sql = `
+      UPDATE users
+      SET deleted_at = NOW()
+      WHERE id = $1 AND deleted_at IS NULL
+    `;
+    await this.db.query(sql, [userId]);
+  }
+
   // store a new refresh token
   async createRefreshToken(data: {
     userId: string;
@@ -125,15 +173,14 @@ export class UsersRepository {
 
   // revoke a specific token
   async revokeRefreshToken(tokenHash: string): Promise<void> {
-    try {
-      const result = await this.db.query(
-        'UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1',
-        [tokenHash],
-      );
-      return result.rows[0];
-    } catch (error: any) {
-      console.error('Error revoking refresh token:', error);
-      throw new Error('Database query failed');
-    }
+    const result = await this.db.query(
+      'UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1',
+      [tokenHash],
+    );
+    return result.rows[0];
+  }
+  async revokeAllRefreshToken(userId) {
+    const sql = `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL.`;
+    await this.db.query(sql, [userId]);
   }
 }
