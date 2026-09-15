@@ -14,6 +14,7 @@ import {
   storageConfig,
   validationSchema,
 } from './config/configuration';
+import { AdminModule } from './features/admin/admin.module';
 import { AttachmentsModule } from './features/attachments/attachments.module';
 import { AuthModule } from './features/auth/auth.module';
 import { CommentsModule } from './features/comments/comments.module';
@@ -58,6 +59,7 @@ import { StorageModule } from './infrastructure/storage/storage.module';
     ProjectsModule,
     CommentsModule,
     AttachmentsModule,
+    AdminModule,
   ],
   controllers: [ApiGatewayController],
   providers: [
