@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { CacheService } from '../../capabilities/cache/cache.service';
+import { DatabaseService } from '../../infrastructure/database/database.service';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { CacheService } from '../../capabilities/cache/cache.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
     private usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
     private cacheService: CacheService,
+    private db: DatabaseService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -78,40 +80,47 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const refreshTokenHash = hash(refreshToken);
-    const tokenRecord =
-      await this.usersRepository.findRefreshToken(refreshTokenHash);
+    const tokenHash = hash(refreshToken);
 
-    if (!tokenRecord) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
+    return await this.db.transaction(async (client) => {
+      // lock the row — second concurrent request waits here
+      const tokenRecord = await this.usersRepository.findAndLockRefreshToken(
+        tokenHash,
+        client,
+      );
 
-    const user = await this.usersRepository.findById(tokenRecord.user_id);
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+      if (!tokenRecord) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
 
-    await this.usersRepository.revokeRefreshToken(refreshTokenHash);
+      const user = await this.usersRepository.findById(tokenRecord.user_id);
+      if (!user) throw new UnauthorizedException();
 
-    const newRefreshToken = crypto.randomUUID();
-    const newRefreshTokenHash = hash(newRefreshToken);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+      // revoke old token
+      await this.usersRepository.revokeRefreshTokenByHash(tokenHash, client);
 
-    await this.usersRepository.createRefreshToken({
-      userId: user.id,
-      tokenHash: newRefreshTokenHash,
-      expiresAt,
+      // issue new token
+      const newRefreshToken = crypto.randomUUID();
+      const newHash = hash(newRefreshToken);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await this.usersRepository.createRefreshToken(
+        {
+          userId: user.id,
+          tokenHash: newHash,
+          expiresAt,
+        },
+        client,
+      );
+
+      return {
+        accessToken: this.jwtService.sign({ sub: user.id, email: user.email }),
+        refreshToken: newRefreshToken,
+        expiresIn: 900,
+      };
     });
-
-    return {
-      accessToken: this.jwtService.sign({
-        sub: user.id,
-        email: user.email,
-      }),
-      refreshToken: newRefreshToken,
-      expiresIn: 900,
-    };
+    // TODO: add comment — Brick 10: SELECT FOR UPDATE closes replay race condition
   }
   async logout(refreshToken: string, userId: string) {
     const refreshTokenHash = hash(refreshToken);

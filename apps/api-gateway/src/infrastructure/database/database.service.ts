@@ -39,7 +39,12 @@ export class DatabaseService {
         if (error.code === '40P01' && attempt < maxRetries - 1) {
           // deadlock detected — retry
           attempt++;
-          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
+          const baseDelay = 100 * 2 ** attempt;
+          const jitter = Math.random() * baseDelay;
+
+          await new Promise((resolve) =>
+            setTimeout(resolve, baseDelay + jitter),
+          );
           continue;
         }
         throw error;

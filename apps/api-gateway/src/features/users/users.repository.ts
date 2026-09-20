@@ -1,6 +1,7 @@
 import { RefreshToken } from '@devcollab/common/interfaces/refreshToken.interface';
 import { User } from '@devcollab/common/interfaces/user.interface';
 import { ConflictException, Injectable } from '@nestjs/common';
+import { PoolClient } from 'pg';
 import { DatabaseService } from '../../infrastructure/database/database.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -133,13 +134,32 @@ export class UsersRepository {
     await this.db.query(sql, [userId]);
   }
 
+  async findAndLockRefreshToken(
+    tokenHash: string,
+    client: PoolClient,
+  ): Promise<RefreshToken | null> {
+    const result = await client.query<RefreshToken>(
+      `SELECT * FROM refresh_tokens
+     WHERE token_hash = $1
+       AND revoked_at IS NULL
+       AND expires_at > NOW()
+     FOR UPDATE`,
+      [tokenHash],
+    );
+    return result.rows[0] ?? null;
+  }
+
   // store a new refresh token
-  async createRefreshToken(data: {
-    userId: string;
-    tokenHash: string;
-    expiresAt: Date;
-  }): Promise<void> {
-    return await this.db.query(
+  async createRefreshToken(
+    data: {
+      userId: string;
+      tokenHash: string;
+      expiresAt: Date;
+    },
+    client?: PoolClient,
+  ): Promise<void> {
+    const runner = client ?? (this.db as any).pool;
+    return await runner.query(
       `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
        VALUES ($1, $2, $3)`,
       [data.userId, data.tokenHash, data.expiresAt],
@@ -162,6 +182,15 @@ export class UsersRepository {
       [tokenHash],
     );
     return result.rows[0];
+  }
+  async revokeRefreshTokenByHash(
+    tokenHash: string,
+    client: PoolClient,
+  ): Promise<void> {
+    await client.query(
+      `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1`,
+      [tokenHash],
+    );
   }
   async revokeAllRefreshToken(userId) {
     const sql = `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`;

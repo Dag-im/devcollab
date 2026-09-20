@@ -137,23 +137,28 @@ export class WorkspaceService {
     actingMember: Member,
   ): Promise<Member> {
     const user = await this.usersRepository.findByEmail(dto.email);
-    if (!user) {
-      throw new NotFoundException('No user with that email');
-    }
-    const existingMember = await this.memberRepository.findByUserAndWorkspace(
+    if (!user) throw new NotFoundException('No user with that email');
+
+    const existing = await this.memberRepository.findByUserAndWorkspace(
       user.id,
       workspaceId,
     );
-    if (existingMember) {
-      throw new ConflictException('User is already a member');
+    if (existing) throw new ConflictException('User is already a member');
+
+    try {
+      const newMember = await this.memberRepository.create({
+        userId: user.id,
+        workspaceId,
+        role: dto.role ?? MemberRole.MEMBER,
+      });
+      await this.cacheService.del(`workspace:${workspaceId}:members`);
+      return newMember;
+    } catch (error: any) {
+      if (error.code === '23505') {
+        throw new ConflictException('User is already a member');
+      }
+      throw error;
     }
-    const newMember = await this.memberRepository.create({
-      userId: user.id,
-      workspaceId,
-      role: dto.role ?? MemberRole.MEMBER,
-    });
-    await this.cacheService.del(`workspace:${workspaceId}:members`);
-    return newMember;
   }
   async updateMemberRole(
     workspaceId: string,
