@@ -27,4 +27,24 @@ export class DatabaseService {
       client.release();
     }
   }
+  async transactionWithRetry<T>(
+    work: (client: PoolClient) => Promise<T>,
+    maxRetries = 3,
+  ): Promise<T> {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        return await this.transaction(work);
+      } catch (error: any) {
+        if (error.code === '40P01' && attempt < maxRetries - 1) {
+          // deadlock detected — retry
+          attempt++;
+          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Transaction failed after max retries');
+  }
 }

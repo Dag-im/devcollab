@@ -1,5 +1,6 @@
 import { User } from '@devcollab/common/interfaces/user.interface';
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -19,22 +20,17 @@ import { UsersService } from './users.service';
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-  /**
-   * GET    /users/me           → usersService.getProfile(user.id)
-    PATCH  /users/me           → usersService.updateProfile(user.id, dto)
-    PATCH  /users/me/password  → usersService.changePassword(user.id, dto)
-    DELETE /users/me           → usersService.deleteAccount(user.id) + clear cookie + 204
-   */
+
   @Get('me')
   getMe(@CurrentUser() user: User) {
     return this.usersService.getProfile(user.id);
   }
   @Patch('me')
-  updateProfile(@CurrentUser() user: User, dto: UpdateProfileDto) {
+  updateProfile(@CurrentUser() user: User, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(user.id, dto);
   }
   @Patch('me/password')
-  updatePassword(@CurrentUser() user: User, dto: ChangePasswordDto) {
+  updatePassword(@CurrentUser() user: User, @Body() dto: ChangePasswordDto) {
     return this.usersService.changePassword(user.id, dto);
   }
   @Delete('me')

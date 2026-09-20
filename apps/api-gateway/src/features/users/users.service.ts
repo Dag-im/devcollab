@@ -24,14 +24,14 @@ export class UsersService {
     return user;
   }
 
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<User> {
     const existing = await this.usersRepository.findById(userId);
     if (!existing) throw new NotFoundException('User not found');
     const user = await this.usersRepository.updateProfile(userId, dto);
     await this.cacheService.del(`user:${userId}`);
     return user;
   }
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.usersRepository.findByIdWithPassword(userId);
     if (!user) throw new NotFoundException('User not found');
     const isPasswordValid = await bcrypt.compare(
@@ -45,7 +45,7 @@ export class UsersService {
     await this.usersRepository.revokeAllRefreshToken(userId);
     await this.cacheService.del(`user:${userId}`);
   }
-  async deleteAccount(userId: string) {
+  async deleteAccount(userId: string): Promise<void> {
     const user = await this.usersRepository.findById(userId);
     if (!user) throw new NotFoundException('User not found');
     await this.usersRepository.softDelete(userId);

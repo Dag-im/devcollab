@@ -2,6 +2,7 @@ import { RefreshToken } from '@devcollab/common/interfaces/refreshToken.interfac
 import { User } from '@devcollab/common/interfaces/user.interface';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../infrastructure/database/database.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -67,33 +68,22 @@ export class UsersRepository {
     };
   }
 
-  async createUser({
-    email,
-    username,
-    passwordHash,
-    isPlatformAdmin,
-  }: {
+  async createUser(data: {
     email: string;
     username: string;
     passwordHash: string;
-    isPlatformAdmin?: boolean | null; // Accepts true, false, null, or undefined
   }): Promise<User> {
     try {
-      // Coerces both null and undefined into false, while keeping true as true
-      const isAdmin = isPlatformAdmin ?? false;
-
       const result = await this.db.query<User>(
-        `INSERT INTO users (email, username, password_hash, is_platform_admin)
-       VALUES ($1, $2, $3, $4)
+        `INSERT INTO users (email, username, password_hash)
+       VALUES ($1, $2, $3)
        RETURNING id, email, username, avatar_url, is_verified, is_platform_admin, created_at`,
-        [email, username, passwordHash, isAdmin],
+        [data.email, data.username, data.passwordHash],
       );
       return result.rows[0];
     } catch (error: any) {
-      if (error.code === '23505') {
-        // PostgreSQL unique violation code
+      if (error.code === '23505')
         throw new ConflictException('Email or username already in use');
-      }
       throw error;
     }
   }
@@ -112,27 +102,21 @@ export class UsersRepository {
     return result.rows[0] ?? null;
   }
 
-  async updateProfile(userId, data) {
-    const sql = `
-        UPDATE users
-        SET username = COALESCE($1, username),
-            email = COALESCE($2, email),
-            avatar_url = COALESCE($3, avatar_url),
-        WHERE id = $4 AND deleted_at IS NULL
-        RETURNING *
-      `;
-    const result = await this.db.query<User>(sql, [
-      data.username,
-      data.email,
-      data.avatar_url,
-      userId,
-    ]);
+  async updateProfile(userId: string, data: UpdateProfileDto): Promise<User> {
+    const result = await this.db.query<User>(
+      `UPDATE users
+     SET username = COALESCE($1, username),
+         avatar_url = COALESCE($2, avatar_url)
+     WHERE id = $3 AND deleted_at IS NULL
+     RETURNING id, email, username, avatar_url, is_verified, is_platform_admin, created_at`,
+      [data.username, data.avatar_url, userId],
+    );
     return result.rows[0];
   }
   async updatePassword(userId, passwordHash) {
     const result = await this.db.query<User>(
       `UPDATE users
-    SET passwordHash = $1
+    SET password_hash = $1
     WHERE id = $2 AND deleted_at is NULL
     RETURNING id, email, username, avatar_url, is_verified, is_platform_admin, created_at`,
       [passwordHash, userId],
@@ -180,7 +164,7 @@ export class UsersRepository {
     return result.rows[0];
   }
   async revokeAllRefreshToken(userId) {
-    const sql = `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL.`;
+    const sql = `UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`;
     await this.db.query(sql, [userId]);
   }
 }

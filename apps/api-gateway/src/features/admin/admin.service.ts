@@ -53,7 +53,12 @@ export class AdminServices {
   async setPlatformAdmin(userId: string, value: boolean) {
     const user = await this.usersRepository.findById(userId);
     if (!user) throw new NotFoundException('User not Found');
-    return await this.usersRepository.togglePlatformAdmin(userId, value);
+    const updated = await this.usersRepository.togglePlatformAdmin(
+      userId,
+      value,
+    );
+    await this.cacheService.del(`user:${userId}`);
+    return updated;
   }
   async deleteUser(userId: string, requestingUser: User) {
     const user = await this.usersRepository.findById(userId);
