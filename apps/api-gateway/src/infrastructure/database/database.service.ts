@@ -38,8 +38,8 @@ export class DatabaseService {
       } catch (error: any) {
         if (error.code === '40P01' && attempt < maxRetries - 1) {
           // deadlock detected — retry
-          attempt++;
           const baseDelay = 100 * 2 ** attempt;
+          attempt++;
           const jitter = Math.random() * baseDelay;
 
           await new Promise((resolve) =>
